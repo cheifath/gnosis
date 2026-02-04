@@ -44,6 +44,18 @@ def build_full_debug_prompt(code: str, aggregated_issues: dict) -> str:
     Builds a prompt to generate a consolidated fix for all issues.
     This is a single authoritative debugging operation.
     """
+    # CONTRACT GUARDS
+    if not isinstance(code, str):
+        raise TypeError("build_full_debug_prompt expects code as str")
+
+    if not isinstance(aggregated_issues, dict):
+        raise TypeError(
+            "build_full_debug_prompt expects aggregated issues as dict "
+            "(Python-only full debug)"
+        )
+
+    if not aggregated_issues:
+        raise ValueError("build_full_debug_prompt received empty aggregated issues")
 
     lines = []
 
