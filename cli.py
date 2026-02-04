@@ -80,10 +80,11 @@ def main(path: str):
             aggregated = aggregate_issues(issues)
 
             # ---- Review ----
-            review_text = generate_review(aggregated)
-            review_result = ReviewResult(
+            review_result = generate_review(
+                aggregated,
                 file=str(root),
-                content=review_text,
+                language="python",
+                analysis_type="tool-backed",
             )
             print_review(review_result)
 
@@ -99,6 +100,7 @@ def main(path: str):
                     tool=issue.tool,
                     issue_summary=issue.message,
                     prompt=partial_prompt,
+                    language="python",
                 )
 
                 print_partial_debug(partial_result)
@@ -112,6 +114,8 @@ def main(path: str):
             full_result = generate_full_debug(
                 file=str(root),
                 prompt=full_prompt,
+                language="python",
+                analysis_type="tool-backed",
             )
 
             print_full_debug(full_result)
@@ -123,12 +127,11 @@ def main(path: str):
         print("⚠️  LLM-only analysis (no static analyzers available for this language)\n")
 
         # ---- Review (code-only) ----
-        review_text = generate_review(
-            {"code": code, "language": lang}
-        )
-        review_result = ReviewResult(
+        review_result = generate_review(
+            {"code": code, "language": lang},
             file=str(root),
-            content=review_text,
+            language=lang,
+            analysis_type="llm-only",
         )
         print_review(review_result)
 
@@ -141,6 +144,8 @@ def main(path: str):
         full_result = generate_full_debug(
             file=str(root),
             prompt=full_prompt,
+            language=lang,
+            analysis_type="llm-only",
         )
 
         print_full_debug(full_result)

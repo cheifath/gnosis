@@ -8,7 +8,9 @@ def generate_partial_debug(
     file: str,
     tool: str,
     issue_summary: str,
-    prompt: str
+    prompt: str,
+    *,
+    language: str,
 ) -> PartialDebugResult:
     """
     Executes LLM for a single-issue (partial) debug prompt
@@ -20,13 +22,18 @@ def generate_partial_debug(
         file=file,
         tool=tool,
         issue_summary=issue_summary,
-        content=content
+        content=content,
+        language=language,
+        analysis_type="tool-backed",
     )
 
 
 def generate_full_debug(
     file: str,
-    prompt: str
+    prompt: str,
+    *,
+    language: str,
+    analysis_type: str,
 ) -> FullDebugResult:
     """
     Executes LLM for a consolidated (full-file) debug prompt
@@ -36,5 +43,7 @@ def generate_full_debug(
 
     return FullDebugResult(
         file=file,
-        content=content
+        content=content,
+        language=language,
+        analysis_type=analysis_type,
     )
