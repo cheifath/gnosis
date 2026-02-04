@@ -6,6 +6,15 @@ def build_partial_debug_prompt(code: str, issue: CodeIssue) -> str:
     Builds a prompt to explain and fix a single static analysis issue.
     This is educational and does NOT modify global state.
     """
+    # CONTRACT GUARDS 
+    if not isinstance(code, str):
+        raise TypeError("build_partial_debug_prompt expects code as str")
+
+    if not isinstance(issue, CodeIssue):
+        raise TypeError(
+            "build_partial_debug_prompt expects a CodeIssue "
+            "(Python-only partial debug)"
+        )
 
     lines = []
 
