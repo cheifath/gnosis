@@ -11,9 +11,9 @@ from ai.debug_generator import (
     generate_full_debug,
 )
 from ai.debug_prompt_builder import (
-    build_partial_debug_prompt,
-    build_full_debug_prompt,
-    build_llm_only_full_debug_prompt,
+    build_python_partial_debug_prompt,
+    build_python_full_debug_prompt,
+    build_llm_full_debug_prompt,
 )
 
 from core.review_result import (
@@ -70,7 +70,7 @@ def main(path: str):
 
             # ---- Partial Debug (per issue) ----
             for issue in issues:
-                partial_prompt = build_partial_debug_prompt(
+                partial_prompt = build_python_partial_debug_prompt(
                     code=code,
                     issue=issue,
                 )
@@ -85,7 +85,7 @@ def main(path: str):
                 print_partial_debug(partial_result)
 
             # ---- Full Debug ----
-            full_prompt = build_full_debug_prompt(
+            full_prompt = build_python_full_debug_prompt(
                 code,
                 aggregated,
             )
@@ -114,7 +114,7 @@ def main(path: str):
         print_review(review_result)
 
         # ---- Full Debug (code-only) ----
-        full_prompt = build_llm_only_full_debug_prompt(
+        full_prompt = build_llm_full_debug_prompt(
             code,
             language=lang,
         )

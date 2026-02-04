@@ -1,7 +1,7 @@
 from core.issue_model import CodeIssue
 
 
-def build_partial_debug_prompt(code: str, issue: CodeIssue) -> str:
+def build_python_partial_debug_prompt(code: str, issue: CodeIssue) -> str:
     """
     Builds a prompt to explain and fix a single static analysis issue.
     This is educational and does NOT modify global state.
@@ -48,18 +48,18 @@ def build_partial_debug_prompt(code: str, issue: CodeIssue) -> str:
     return "\n".join(lines)
 
 
-def build_full_debug_prompt(code: str, aggregated_issues: dict) -> str:
+def build_python_full_debug_prompt(code: str, aggregated_issues: dict) -> str:
     """
     Builds a prompt to generate a consolidated fix for all issues.
     This is a single authoritative debugging operation.
     """
     # CONTRACT GUARDS
     if not isinstance(code, str):
-        raise TypeError("build_full_debug_prompt expects code as str")
+        raise TypeError("build_python_full_debug_prompt expects code as str")
 
     if not isinstance(aggregated_issues, dict):
         raise TypeError(
-            "build_full_debug_prompt expects aggregated issues as dict "
+            "build_python_full_debug_prompt expects aggregated issues as dict "
             "(Python-only full debug)"
         )
 
@@ -98,7 +98,7 @@ def build_full_debug_prompt(code: str, aggregated_issues: dict) -> str:
 
 # ai/debug_prompt_builder.py
 
-def build_llm_only_full_debug_prompt(code: str, language: str) -> str:
+def build_llm_full_debug_prompt(code: str, language: str) -> str:
     """
     Builds a full-debug prompt without static analysis (LLM-only).
     Used for non-Python languages.
