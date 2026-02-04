@@ -6,6 +6,19 @@ def build_review_prompt(review: dict) -> str:
     Builds a structured review prompt from aggregated static analysis issues.
     This prompt is used ONLY for review and summarisation (no debugging).
     """
+    # CONTRACT GUARDS
+    if not isinstance(review, dict):
+        raise TypeError("build_review_prompt expects aggregated issues as dict")
+
+    if not review:
+        raise ValueError("build_review_prompt received empty aggregated issues")
+
+    for file, categories in review.items():
+        if not isinstance(categories, dict):
+            raise TypeError(
+                "Invalid aggregated review structure. "
+                "Expected dict[file][category] -> issues"
+            )
 
     lines = []
 
