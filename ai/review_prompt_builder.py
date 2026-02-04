@@ -1,7 +1,7 @@
 from core.issue_model import CodeIssue
 
 
-def build_review_prompt(review: dict) -> str:
+def build_python_review_prompt(review: dict) -> str:
     """
     Builds a structured review prompt from aggregated static analysis issues.
     This prompt is used ONLY for review and summarisation (no debugging).
@@ -48,7 +48,7 @@ def build_review_prompt(review: dict) -> str:
     return "\n".join(lines)
 
 
-def build_llm_only_review_prompt(data) -> str:
+def build_llm_review_prompt(data) -> str:
     """
     Builds a generic LLM-only code review prompt
     for non-Python or unsupported languages.
