@@ -1,4 +1,6 @@
 from core.review_result import ReviewResult
+from core.review_result import PartialDebugResult
+from core.review_result import FullDebugResult
 from cli.formatter import (
     format_review,
     format_partial_debug,
@@ -7,24 +9,35 @@ from cli.formatter import (
 
 
 def print_review(result: ReviewResult) -> None:
-    """
-    Prints formatted review output to console.
-    """
-    output = format_review(result)
-    print(output)
+    print("=" * 80)
+    print(f"📄 File: {result.file}")
+    print(f"🌐 Language: {result.language}")
+    print(f"🧠 Analysis: {result.analysis_type}")
+    print("-" * 80)
+    print(result.content.strip())
+    print("=" * 80)
 
 
-def print_partial_debug(result) -> None:
-    """
-    Prints formatted partial debug output.
-    """
-    output = format_partial_debug(result)
-    print(output)
+
+def print_partial_debug(result: PartialDebugResult) -> None:
+    print("=" * 80)
+    print(f"📄 File: {result.file}")
+    print(f"🔧 Tool: {result.tool}")
+    print(f"🌐 Language: {result.language}")
+    print(f"🧠 Analysis: {result.analysis_type}")
+    print(f"📝 Issue: {result.issue_summary}")
+    print("-" * 80)
+    print(result.content.strip())
+    print("=" * 80)
 
 
-def print_full_debug(result) -> None:
-    """
-    Prints formatted full debug output.
-    """
-    output = format_full_debug(result)
-    print(output)
+
+def print_full_debug(result: FullDebugResult) -> None:
+    print("=" * 80)
+    print(f"📄 File: {result.file}")
+    print(f"🌐 Language: {result.language}")
+    print(f"🧠 Analysis: {result.analysis_type}")
+    print("-" * 80)
+    print(result.content.strip())
+    print("=" * 80)
+
