@@ -28,6 +28,20 @@ from cli.reporter import (
     print_full_debug,
 )
 
+# File extensions that are supported for analysis
+SUPPORTED_EXTENSIONS = {
+    ".py",
+    ".js",
+    ".ts",
+    ".java",
+    ".c",
+    ".cpp",
+    ".cs",
+    ".go",
+    ".rs",
+    ".php",
+}
+
 # Directories that must NEVER be scanned
 IGNORED_DIRS = {
     "venv",
@@ -41,6 +55,11 @@ IGNORED_DIRS = {
 def main(path: str):
     root = Path(path)
 
+    # Skip unsupported file types
+    if root.is_file() and root.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        print(f"Skipping unsupported file type: {root.name}")
+        return
+    
     # =========================
     # Case 1: Single file input
     # =========================
@@ -136,6 +155,9 @@ def main(path: str):
             continue
 
         if not file.is_file():
+            continue
+
+        if file.suffix.lower() not in SUPPORTED_EXTENSIONS:
             continue
 
         lang = detect_language(str(file))
