@@ -1,0 +1,13 @@
+import subprocess
+
+def bad():
+    try:
+        result = subprocess.run(["ls"], check=True)
+        print(result.stdout.decode('utf-8'))
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+if __name__ == "__main__":
+    bad()

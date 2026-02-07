@@ -4,6 +4,8 @@ from pathlib import Path
 from core.language_detector import detect_language
 from analyzers.python.python_static_analyzer import analyze_python_file
 from core.review_aggregator import aggregate_issues
+from core.fix_extractor import extract_fixed_code
+from core.exporter import export_fixed_file
 
 from ai.review_generator import generate_review
 from ai.debug_generator import (
@@ -119,6 +121,22 @@ def main(path: str):
             )
 
             print_full_debug(full_result)
+
+            fixed_code = extract_fixed_code(
+                full_result.content,
+                language="python",
+            )
+
+            if fixed_code:
+                exported = export_fixed_file(
+                    original_path=str(root),
+                    fixed_code=fixed_code,
+                    analysis_type=full_result.analysis_type,
+                )
+
+                print(f"\n✅ Fixed code exported to: {exported.fixed_file}")
+            else:
+                print("\n⚠️ No safe fixed code found. Export skipped.")
             return
 
         # =========================
@@ -149,6 +167,23 @@ def main(path: str):
         )
 
         print_full_debug(full_result)
+
+        fixed_code = extract_fixed_code(
+                full_result.content,
+                language="python",
+            )
+
+        if fixed_code:
+            exported = export_fixed_file(
+            original_path=str(root),
+            fixed_code=fixed_code,
+            analysis_type=full_result.analysis_type,
+        )
+
+            print(f"\n✅ Fixed code exported to: {exported.fixed_file}")
+        else:
+            print("\n⚠️ No safe fixed code found. Export skipped.")
+        
         return
 
     # =========================
