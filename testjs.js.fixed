@@ -1,0 +1,51 @@
+const express = require("express");
+const mysql = require("mysql");
+const bcrypt = require("bcryptjs");
+const app = express();
+
+app.use(express.json());
+
+// Connect to MySQL database
+const db = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "password",
+  database: "users_db"
+});
+
+db.connect((err) => {
+  if (err) throw err;
+  console.log("Connected to the database");
+});
+
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    // Check if the user exists and validate the password
+    const [results] = await db.query(
+      "SELECT * FROM users WHERE username = ?",
+      [username]
+    );
+
+    if (!results.length) {
+      return res.status(401).send("Invalid credentials");
+    }
+
+    const storedPassword = results[0].password;
+    const isValidPassword = await bcrypt.compare(password, storedPassword);
+
+    if (!isValidPassword) {
+      return res.status(401).send("Invalid credentials");
+    }
+
+    res.send("Login successful");
+  } catch (err) {
+    console.error("Error during login:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});

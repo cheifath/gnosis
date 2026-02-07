@@ -11,18 +11,26 @@ from cli.formatter import (
 )
 
 
-def print_review(result: ReviewResult) -> None:
+def print_review(enveloped: ResultEnvelope[ReviewResult]) -> None:
+    result = enveloped.result
+    confidence = enveloped.confidence
+
     print("=" * 80)
     print(f"📄 File: {result.file}")
     print(f"🌐 Language: {result.language}")
     print(f"🧠 Analysis: {result.analysis_type}")
     print("-" * 80)
     print(result.content.strip())
+    print("-" * 80)
+    print(f"🔐 Confidence: {confidence.level.upper()} ({confidence.score})")
+    print(f"ℹ️  {confidence.rationale}")
     print("=" * 80)
 
 
+def print_partial_debug(enveloped: ResultEnvelope[PartialDebugResult]) -> None:
+    result = enveloped.result
+    confidence = enveloped.confidence
 
-def print_partial_debug(result: PartialDebugResult) -> None:
     print("=" * 80)
     print(f"📄 File: {result.file}")
     print(f"🔧 Tool: {result.tool}")
@@ -31,6 +39,9 @@ def print_partial_debug(result: PartialDebugResult) -> None:
     print(f"📝 Issue: {result.issue_summary}")
     print("-" * 80)
     print(result.content.strip())
+    print("-" * 80)
+    print(f"🔐 Confidence: {confidence.level.upper()} ({confidence.score})")
+    print(f"ℹ️  {confidence.rationale}")
     print("=" * 80)
 
 
