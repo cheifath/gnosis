@@ -1,6 +1,9 @@
+# from core import confidence
 from core.review_result import ReviewResult
 from core.review_result import PartialDebugResult
 from core.review_result import FullDebugResult
+from core.result_envelope import ResultEnvelope
+from core.confidence import ConfidenceScore
 from cli.formatter import (
     format_review,
     format_partial_debug,
@@ -32,7 +35,10 @@ def print_partial_debug(result: PartialDebugResult) -> None:
 
 
 
-def print_full_debug(result: FullDebugResult) -> None:
+def print_full_debug(enveloped: ResultEnvelope[FullDebugResult]) -> None:
+    result = enveloped.result
+    confidence = enveloped.confidence
+
     print("=" * 80)
     print(f"📄 File: {result.file}")
     print(f"🌐 Language: {result.language}")
@@ -40,4 +46,9 @@ def print_full_debug(result: FullDebugResult) -> None:
     print("-" * 80)
     print(result.content.strip())
     print("=" * 80)
+    print(f"🔐 Confidence: {confidence.level.upper()} ({confidence.score})")
+    print(f"ℹ️  {confidence.rationale}")
+
+
+
 

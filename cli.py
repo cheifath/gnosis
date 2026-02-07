@@ -1,11 +1,16 @@
 import sys
 from pathlib import Path
 
+from core import confidence, review_result
 from core.language_detector import detect_language
 from analyzers.python.python_static_analyzer import analyze_python_file
 from core.review_aggregator import aggregate_issues
+
 from core.fix_extractor import extract_fixed_code
 from core.exporter import export_fixed_file
+
+from core.confidence_calculator import calculate_confidence
+from core.result_envelope import ResultEnvelope
 
 from ai.review_generator import generate_review
 from ai.debug_generator import (
@@ -120,8 +125,20 @@ def main(path: str):
                 analysis_type="tool-backed",
             )
 
-            print_full_debug(full_result)
+            # Calculate confidence score for this analysis
+            confidence = calculate_confidence(
+            analysis_type=full_result.analysis_type,
+            tools_used=["bandit", "flake8", "radon"],
+            )
 
+            enveloped = ResultEnvelope(
+            result=full_result,
+            confidence=confidence,
+            )
+
+            print_full_debug(enveloped)
+
+            # full debug export (if safe code block found)
             fixed_code = extract_fixed_code(
                 full_result.content,
                 language="python",
@@ -137,6 +154,10 @@ def main(path: str):
                 print(f"\n✅ Fixed code exported to: {exported.fixed_file}")
             else:
                 print("\n⚠️ No safe fixed code found. Export skipped.")
+
+
+
+
             return
 
         # =========================
@@ -166,8 +187,19 @@ def main(path: str):
             analysis_type="llm-only",
         )
 
-        print_full_debug(full_result)
+        # Calculate confidence score for this analysis
+        confidence = calculate_confidence(
+        analysis_type=review_result.analysis_type,
+        )
 
+        enveloped = ResultEnvelope(
+        result=review_result,
+        confidence=confidence,
+        )
+
+        print_full_debug(enveloped)
+
+        # full debug export (if safe code block found)
         fixed_code = extract_fixed_code(
                 full_result.content,
                 language="python",

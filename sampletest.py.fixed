@@ -1,13 +1,15 @@
 import subprocess
 
 def bad():
+    # Validate inputs if any are passed as arguments
+    cmd = "ls"
     try:
-        result = subprocess.run(["ls"], check=True)
+        result = subprocess.run(cmd, check=True, shell=False)
         print(result.stdout.decode('utf-8'))
     except subprocess.CalledProcessError as e:
-        print(f"An error occurred: {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        print(f"Command '{cmd}' failed with error: {e}")
+    except FileNotFoundError:
+        print(f"Command '{cmd}' not found.")
 
-if __name__ == "__main__":
-    bad()
+# Example usage
+bad()
