@@ -18,3 +18,6 @@ Thumbs.db
 
 # ===== Generated / Runtime =====
 storage/
+
+# GitHub App private keys
+*.pem
