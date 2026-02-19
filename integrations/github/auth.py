@@ -1,4 +1,5 @@
 import time
+from urllib import response
 import jwt
 import requests
 from pathlib import Path
@@ -19,10 +20,13 @@ class GitHubAppAuth:
     def _generate_jwt(self) -> str:
         now = int(time.time())
         payload = {
-            "iat": now - 60,
-            "exp": now + 600,
+            "iat": now - 30,
+            "exp": now + 540,
             "iss": self.app_id,
         }
+        print("Generating JWT with app_id:", self.app_id)
+        print("Using installation:", self.installation_id)
+
         return jwt.encode(payload, self.private_key, algorithm="RS256")
 
     def _get_installation_token(self) -> str:
@@ -39,6 +43,9 @@ class GitHubAppAuth:
         )
 
         response = requests.post(url, headers=headers)
+        print(response.status_code)
+        print(response.text)
+
         response.raise_for_status()
 
         return response.json()["token"]

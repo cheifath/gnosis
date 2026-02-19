@@ -76,12 +76,17 @@ class PullRequestEngineRunner:
             ) as tmp:
                 tmp.write(content)
                 tmp_path = tmp.name
+            
+            print("Detected language:", language)
+
 
             # =========================
             # PYTHON (tool-backed)
             # =========================
             if language == "python":
                 issues = analyze_python_file(tmp_path)
+                print("DEBUG ISSUES:", issues)
+
 
                 if not issues:
                     return {
