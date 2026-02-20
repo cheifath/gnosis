@@ -1,4 +1,5 @@
 import base64
+from urllib import response
 import requests
 from typing import List, Dict
 
@@ -20,7 +21,13 @@ class GitHubPRFetcher:
         }
         self.api_base = "https://api.github.com"
 
+    def get_pr_details(self, owner: str, repo: str, pr_number: int):
+        url = f"{self.api_base}/repos/{owner}/{repo}/pulls/{pr_number}"
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
 
+    
     def fetch_changed_files(
         self,
         owner: str,

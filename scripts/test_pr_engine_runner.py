@@ -1,5 +1,12 @@
+from unittest import result
+from integrations.github import auth
 from integrations.github.auth import GitHubAppAuth
+from integrations.github.comment_formatter import format_pr_summary
+from integrations.github.pr_commenter import GitHubPRCommenter
 from integrations.github.pr_engine_runner import PullRequestEngineRunner
+
+from integrations.github.pr_commenter import GitHubPRCommenter
+from integrations.github.comment_formatter import format_pr_summary
 
 # ----------------------------
 # CONFIG
@@ -30,6 +37,40 @@ def main():
         pr_number=PR_NUMBER,
     )
 
+   
+    commenter = GitHubPRCommenter(auth.get_auth_headers())
+
+    body = format_pr_summary(result)
+
+    marker = "<!-- GNOSIS_PR_REVIEW -->"
+
+    existing_comments = commenter.list_comments(OWNER, REPO, PR_NUMBER)
+
+    gnosis_comment = None
+    for comment in existing_comments:
+        if marker in comment["body"]:
+            gnosis_comment = comment
+            break
+
+    if gnosis_comment:
+        commenter.update_comment(
+            OWNER,
+            REPO,
+            gnosis_comment["id"],
+            body,
+        )
+    else:
+        commenter.create_comment(
+            OWNER,
+            REPO,
+            PR_NUMBER,
+            body,
+        )
+
+
+    print("✅ Comment posted to PR")
+
+
     print("\n============================")
     print("PR ANALYSIS RESULT")
     print("============================\n")
@@ -45,6 +86,24 @@ def main():
         print("Review Preview:",
               (file_result["review"] or "")[:150])
         print("-----\n")
+
+    pr_details = runner.fetcher.get_pr_details(OWNER, REPO, PR_NUMBER)
+    commit_id = pr_details["head"]["sha"]
+
+    for file_result in result["files"]:
+        for issue in file_result.get("issues", []):
+            if issue.line:
+                commenter.create_inline_comment(
+                    OWNER,
+                    REPO,
+                    PR_NUMBER,
+                    body=f"🔎 {issue.message}",
+                    commit_id=commit_id,
+                    path=file_result["filename"],
+                    line=issue.line,
+                )
+
+
 
 
 if __name__ == "__main__":

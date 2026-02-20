@@ -139,6 +139,8 @@ class PullRequestEngineRunner:
                         "full_debug": full_debug.content,
                         "confidence": confidence.score,
                         "fixed_code": fixed_code,
+                        "issues": issues,
+
                     }
             
             # =========================
