@@ -10,9 +10,15 @@ app = Flask(__name__)
 # ----------------------------
 # CONFIG
 # ----------------------------
-APP_ID = "2814959"
-INSTALLATION_ID = "108587429"
-PEM_PATH = "scripts/gnosis-pr-reviewer.2026-02-07.private-key.pem"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+APP_ID = os.getenv("APP_ID")
+INSTALLATION_ID = os.getenv("INSTALLATION_ID")
+PEM_PATH = os.getenv("PEM_PATH")
+
 
 
 # ----------------------------
