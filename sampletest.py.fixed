@@ -1,0 +1,13 @@
+import subprocess
+
+def safe_subprocess():
+    try:
+        # Use subprocess.run for safer execution
+        result = subprocess.run(["ls"], check=True, capture_output=True, text=True)
+        print(result.stdout.strip())
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e.stderr}")
+    except FileNotFoundError:
+        print("The 'ls' command was not found.")
+
+safe_subprocess()

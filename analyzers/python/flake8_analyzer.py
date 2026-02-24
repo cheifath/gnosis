@@ -1,6 +1,7 @@
 import subprocess
 from core.issue_model import CodeIssue
 
+
 def run_flake8(file_path: str) -> list[CodeIssue]:
     result = subprocess.run(
         ["flake8", file_path],
@@ -11,20 +12,29 @@ def run_flake8(file_path: str) -> list[CodeIssue]:
     issues = []
 
     for line in result.stdout.splitlines():
-        parts = line.split(":", maxsplit=3)
-        if len(parts) < 4:
+        try:
+            # Split from the RIGHT to avoid breaking Windows paths
+            path_part, line_no, col_no, rest = line.rsplit(":", 3)
+        except ValueError:
             continue
 
-        _, line_no, _, message = parts
+        message = rest.strip()
+
+        # Extract error code (first token)
+        code = message.split()[0]
+
+        # ✅ Keep only serious errors
+        if not (code.startswith("F") or code.startswith("E9")):
+            continue
 
         issues.append(
             CodeIssue(
                 file=file_path,
                 tool="flake8",
-                category="style",
-                severity="low",
+                category="syntax",
+                severity="high",
                 line=int(line_no),
-                message=message.strip()
+                message=message
             )
         )
 
