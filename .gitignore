@@ -21,3 +21,4 @@ storage/
 
 # GitHub App private keys
 *.pem
+.env
