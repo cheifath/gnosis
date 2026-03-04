@@ -133,3 +133,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 APP_ID = os.getenv("APP_ID")
 INSTALLATION_ID = os.getenv("INSTALLATION_ID")
 PEM_PATH = os.getenv("PEM_PATH")
+
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"

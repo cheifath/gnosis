@@ -25,7 +25,9 @@ class Repository(models.Model):
     connected_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,  # Update to use dynamic user model
         on_delete=models.CASCADE,
-        related_name="repositories"
+        related_name="repositories",
+        null=True,  # Allow null for now, since we may not have user info at the time of creation
+        blank=True
     )
 
     is_active = models.BooleanField(default=True)

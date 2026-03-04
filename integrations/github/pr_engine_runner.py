@@ -1,21 +1,16 @@
 from typing import Dict, List
-
-from integrations.github.pr_fetcher import GitHubPRFetcher
-
-from analyzers.python.python_static_analyzer import analyze_python_file
-from core.review_aggregator import aggregate_issues
-
 import tempfile
 from pathlib import Path
 import os
-
+from integrations.github.pr_fetcher import GitHubPRFetcher
+from analyzers.python.python_static_analyzer import analyze_python_file
+from core.review_aggregator import aggregate_issues
 from ai.review_generator import generate_review
 from ai.debug_generator import generate_full_debug
 from ai.debug_prompt_builder import (
     build_python_full_debug_prompt,
     build_llm_full_debug_prompt,
 )
-
 from core.confidence_calculator import calculate_confidence
 from core.result_envelope import ResultEnvelope
 from core.fix_extractor import extract_fixed_code
@@ -31,25 +26,42 @@ class PullRequestEngineRunner:
         repo: str,
         pr_number: int,
     ) -> Dict:
-
+        # Fetch all changed files from the PR
         files = self.fetcher.fetch_changed_files(
             owner=owner,
             repo=repo,
             pr_number=pr_number,
         )
 
-        pr_results: List[Dict] = []
+        pr_results: List[Dict] = []  # Store results for each file
 
         for f in files:
             filename = f["filename"]
             content = f["content"]
             language = f["language"]
 
-            file_result = self._analyze_file(
-                filename,
-                content,
-                language,
-            )
+            # Debugging print to track file name and detected language
+            print(f"Detected file: {filename}, Detected language: {language}")
+
+            # Handle files according to their language
+            if language == "python":
+                print(f"Processing Python file: {filename}")
+                file_result = self._analyze_file(
+                    filename,
+                    content,
+                    language,
+                )
+            elif language == "javascript":
+                print(f"Processing JavaScript file: {filename}")
+                file_result = self._analyze_file(
+                    filename,
+                    content,
+                    language,
+                )
+            else:
+                # If it's an unsupported language, skip the file
+                print(f"Skipping unsupported file: {filename} with language {language}")
+                continue
 
             pr_results.append(file_result)
 
@@ -64,21 +76,15 @@ class PullRequestEngineRunner:
         content: str,
         language: str,
     ) -> Dict:
-        
         tmp_path = None
         try:
+            # Using actual filename instead of temp file for analysis.
+            tmp_path = f"tmp_{Path(filename).name}"
 
-            with tempfile.NamedTemporaryFile(
-                mode="w",
-                suffix=Path(filename).suffix,
-                delete=False,
-                encoding="utf-8",
-            ) as tmp:
+            with open(tmp_path, "w", encoding="utf-8") as tmp:
                 tmp.write(content)
-                tmp_path = tmp.name
-            
-            print("Detected language:", language)
 
+            print("Detected language:", language)
 
             # =========================
             # PYTHON (tool-backed)
@@ -87,20 +93,19 @@ class PullRequestEngineRunner:
                 issues = analyze_python_file(tmp_path)
                 print("DEBUG ISSUES:", issues)
 
-
                 if not issues:
                     return {
                         "filename": filename,
                         "review": "No issues found by static analysis tools.",
                         "full_debug": None,
-                         "confidence": {
+                        "confidence": {
                             "level": "high",
                             "score": 1.0,
                             "rationale": "No issues detected by static analysis tools (bandit, flake8, radon).",
                         },
                         "fixed_code": None,
                     }
-                
+
                 else:
                     aggregated = aggregate_issues(issues)
 
@@ -140,9 +145,8 @@ class PullRequestEngineRunner:
                         "confidence": confidence.score,
                         "fixed_code": fixed_code,
                         "issues": issues,
-
                     }
-            
+
             # =========================
             # NON-PYTHON (LLM-only)
             # =========================
@@ -182,7 +186,8 @@ class PullRequestEngineRunner:
                     "confidence": confidence.score,
                     "fixed_code": fixed_code,
                 }
-        
+
         finally:
+            # Remove the temp file after processing
             if tmp_path and os.path.exists(tmp_path):
                 os.remove(tmp_path)
