@@ -5,7 +5,7 @@ from integrations.github.pr_engine_runner import PullRequestEngineRunner
 from integrations.github.pr_commenter import GitHubPRCommenter
 from integrations.github.check_runner import GitHubCheckRunner
 from integrations.github.comment_formatter import format_pr_summary
-from platform_app.models import PullRequest, PullRequestFile, Issue, Review, Confidence, Fix, Repository
+from platform_app.models import PullRequest, PullRequestFile, Issue, Review, Confidence, Fix, Repository, UserProfile, Installation
 
 
 @shared_task
@@ -21,12 +21,15 @@ def process_pr_task(payload):
     repo = payload["repository"]["name"]
     pr_number = pr["number"]
 
+    # Resolve installation_id from payload (multi-tenant)
+    payload_installation_id = str(payload.get("installation", {}).get("id", ""))
+
     try:
 
-        # GitHub App Authentication
+        # GitHub App Authentication — use installation-specific ID
         auth = GitHubAppAuth(
             app_id=settings.APP_ID,
-            installation_id=settings.INSTALLATION_ID,
+            installation_id=payload_installation_id or settings.INSTALLATION_ID,
             private_key_path=settings.PEM_PATH,
         )
 
@@ -94,15 +97,36 @@ def process_pr_task(payload):
         # Persist Repository
         # =========================
 
+        # Find user who owns this repository via GitHub login
+        connected_user = None
+        profile = UserProfile.objects.filter(github_login=owner).first()
+        if profile:
+            connected_user = profile.user
+
+        # Resolve the Installation object
+        installation_obj = None
+        if payload_installation_id:
+            installation_obj = Installation.objects.filter(
+                github_installation_id=payload_installation_id
+            ).first()
+            # If installation has a linked user, prefer that
+            if installation_obj and installation_obj.installed_by and not connected_user:
+                connected_user = installation_obj.installed_by
+
         repository_obj, _ = Repository.objects.update_or_create(
             owner_name=owner,
             repo_name=repo,
             defaults={
                 "github_repo_id": payload["repository"]["id"],
-                "installation_id": payload["installation"]["id"],
-                "connected_by": None,
+                "github_installation_id": payload_installation_id or str(payload.get("installation", {}).get("id", "")),
+                "installation": installation_obj,
             }
         )
+
+        # Only set connected_by if not already set (preserve existing ownership)
+        if repository_obj.connected_by is None and connected_user:
+            repository_obj.connected_by = connected_user
+            repository_obj.save(update_fields=["connected_by"])
 
         # =========================
         # Persist Pull Request
@@ -129,11 +153,16 @@ def process_pr_task(payload):
 
         for file_result in result["files"]:
 
+            # Detect language from filename extension
+            from core.language_detector import detect_language
+            detected_lang = detect_language(file_result["filename"]) or ""
+
             pr_file = PullRequestFile.objects.create(
                 pull_request=pull_request_obj,
                 filename=file_result["filename"],
-                language=file_result.get("language", ""),
+                language=detected_lang,
                 file_path=file_result["filename"],
+                original_content=file_result.get("original_content", ""),
                 analysis_type="tool-backed" if "issues" in file_result else "llm-only",
             )
 

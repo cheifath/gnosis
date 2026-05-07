@@ -63,6 +63,7 @@ class PullRequestEngineRunner:
                 print(f"Skipping unsupported file: {filename} with language {language}")
                 continue
 
+            file_result["original_content"] = content
             pr_results.append(file_result)
 
         return {
@@ -98,11 +99,7 @@ class PullRequestEngineRunner:
                         "filename": filename,
                         "review": "No issues found by static analysis tools.",
                         "full_debug": None,
-                        "confidence": {
-                            "level": "high",
-                            "score": 1.0,
-                            "rationale": "No issues detected by static analysis tools (bandit, flake8, radon).",
-                        },
+                        "confidence": 1.0,
                         "fixed_code": None,
                     }
 
