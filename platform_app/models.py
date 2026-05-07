@@ -15,25 +15,85 @@ class User(AbstractUser):
     github_user_id = models.CharField(max_length=100, null=True, blank=True)
 
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="profile"
+    )
+    github_id = models.CharField(max_length=100, null=True, blank=True)
+    github_login = models.CharField(max_length=255, null=True, blank=True)
+    github_token = models.CharField(max_length=500, null=True, blank=True)
+    avatar_url = models.URLField(max_length=500, null=True, blank=True)
+    connected_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Profile for {self.user.username}"
+
+
+
+class Installation(models.Model):
+    """Represents a GitHub App installation on a user or organization account."""
+    github_installation_id = models.CharField(max_length=100, unique=True)
+    account_login = models.CharField(max_length=255)  # GitHub username or org name
+    account_type = models.CharField(
+        max_length=20,
+        choices=[("User", "User"), ("Organization", "Organization")],
+        default="User",
+    )
+    account_id = models.CharField(max_length=100)  # GitHub account ID
+    account_avatar_url = models.URLField(max_length=500, blank=True, default="")
+    repository_selection = models.CharField(
+        max_length=20,
+        choices=[("all", "All repositories"), ("selected", "Selected repositories")],
+        default="all",
+    )
+
+    installed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="installations",
+    )
+
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.account_login} ({self.account_type}) — install #{self.github_installation_id}"
+
 
 class Repository(models.Model):
     owner_name = models.CharField(max_length=255)
     repo_name = models.CharField(max_length=255)
     github_repo_id = models.CharField(max_length=100)
-    installation_id = models.CharField(max_length=100)
+    github_installation_id = models.CharField(max_length=100, blank=True, default="")
 
-    connected_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # Update to use dynamic user model
+    installation = models.ForeignKey(
+        Installation,
         on_delete=models.CASCADE,
         related_name="repositories",
-        null=True,  # Allow null for now, since we may not have user info at the time of creation
-        blank=True
+        null=True,
+        blank=True,
+    )
+
+    connected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="connected_repositories",
+        null=True,
+        blank=True,
     )
 
     is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)  # New field to track updates
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("owner_name", "repo_name")
 
     def __str__(self):
         return f"{self.owner_name}/{self.repo_name}"
@@ -82,6 +142,7 @@ class PullRequestFile(models.Model):
     filename = models.CharField(max_length=500)
     language = models.CharField(max_length=100)
     file_path = models.TextField()
+    original_content = models.TextField(blank=True, default="")
 
     analysis_type = models.CharField(
         max_length=20,
@@ -170,6 +231,24 @@ class Confidence(models.Model):
         return f"{self.score}"
 
     
+class GnosisSettings(models.Model):
+    github_app_id = models.CharField(max_length=50, blank=True, default="")
+    github_installation_id = models.CharField(max_length=50, blank=True, default="")
+    github_pem_path = models.CharField(max_length=255, blank=True, default="")
+    default_repositories = models.JSONField(default=list)
+    enable_llm_analysis = models.BooleanField(default=True)
+    enable_tool_backed_analysis = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Gnosis Settings"
+        verbose_name_plural = "Gnosis Settings"
+
+    def __str__(self):
+        return "Gnosis Global Settings"
+
+
 class WebhookEvent(models.Model):
     event_type = models.CharField(max_length=255)
     payload = models.JSONField()  # Store the raw payload from the GitHub webhook
