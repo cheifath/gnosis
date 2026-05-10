@@ -43,24 +43,31 @@ class PullRequestEngineRunner:
             # Debugging print to track file name and detected language
             print(f"Detected file: {filename}, Detected language: {language}")
 
-            # Handle files according to their language
+            # Languages that follow the JS-style LLM-only pipeline
+            SUPPORTED_NON_PY = {
+                "javascript",
+                "typescript",
+                "java",
+                "c",
+                "cpp",
+                "visualbasic",
+                "sql",
+                "csharp",
+                "go",
+                "rust",
+                "php",
+            }
+
+            # Route file to the correct pipeline
             if language == "python":
                 print(f"Processing Python file: {filename}")
-                file_result = self._analyze_file(
-                    filename,
-                    content,
-                    language,
-                )
-            elif language == "javascript":
-                print(f"Processing JavaScript file: {filename}")
-                file_result = self._analyze_file(
-                    filename,
-                    content,
-                    language,
-                )
+                file_result = self._analyze_file(filename, content, language)
+            elif language in SUPPORTED_NON_PY:
+                print(f"Processing non-Python file via LLM-only pipeline: {filename} ({language})")
+                file_result = self._analyze_file(filename, content, language)
             else:
-                # If it's an unsupported language, skip the file
-                print(f"Skipping unsupported file: {filename} with language {language}")
+                # If it's an unsupported language, skip the file but log clearly
+                print(f"Skipping unsupported file: {filename} (language={language})")
                 continue
 
             file_result["original_content"] = content

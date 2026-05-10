@@ -6,7 +6,14 @@ from typing import List, Dict
 from core.language_detector import detect_language
 
 SUPPORTED_EXTENSIONS = {
-    ".py", ".js", ".ts", ".java", ".c", ".cpp",
+    ".py", ".js", ".ts", ".java",
+    # C family
+    ".c", ".h", ".cpp", ".cc", ".cxx", ".hpp",
+    # Visual Basic
+    ".vb",
+    # SQL
+    ".sql",
+    # other advertised languages
     ".cs", ".go", ".rs", ".php",
 }
 
@@ -65,9 +72,11 @@ class GitHubPRFetcher:
                 filename = f["filename"]
 
                 if not any(filename.endswith(ext) for ext in SUPPORTED_EXTENSIONS):
+                    print(f"Skipping file due to unsupported extension: {filename}")
                     continue
 
                 if f.get("size", 0) > MAX_FILE_SIZE:
+                    print(f"Skipping file due to size limit: {filename} ({f.get('size',0)} bytes)")
                     continue
 
                 content = self._fetch_file_content(
@@ -78,6 +87,7 @@ class GitHubPRFetcher:
                 )
 
                 if not content:
+                    print(f"Skipping file because content couldn't be fetched: {filename}")
                     continue
 
                 files.append({

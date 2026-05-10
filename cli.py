@@ -32,7 +32,14 @@ from cli.reporter import (
 )
 
 SUPPORTED_EXTENSIONS = {
-    ".py", ".js", ".ts", ".java", ".c", ".cpp",
+    ".py", ".js", ".ts", ".java",
+    # C / C++ and headers
+    ".c", ".h", ".cpp", ".cc", ".cxx", ".hpp",
+    # Visual Basic
+    ".vb",
+    # SQL
+    ".sql",
+    # other advertised languages
     ".cs", ".go", ".rs", ".php",
 }
 
