@@ -124,6 +124,11 @@ export async function apiAdminUpdateUser(
   return res.data
 }
 
+export async function apiAdminDeleteUser(userId: number): Promise<{ status: string }> {
+  const res = await api.delete(`/admin/users/${userId}/`)
+  return res.data
+}
+
 export async function apiAdminListPRs(params?: {
   status?: string
   repository?: string

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import AdminLayout from "@/components/layout/admin-layout"
 import {
   apiAdminListUsers,
+  apiAdminDeleteUser,
   apiAdminUpdateUser,
   AdminUser,
 } from "@/lib/api/admin"
@@ -20,6 +21,7 @@ import {
   Clock,
   GitPullRequest,
   UserCircle,
+  Trash,
 } from "lucide-react"
 
 function timeAgo(dateStr: string) {
@@ -57,6 +59,21 @@ export default function AdminUsersPage() {
     setUpdating(userId)
     try {
       await apiAdminUpdateUser(userId, data)
+      loadUsers()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setUpdating(null)
+      setActionMenu(null)
+    }
+  }
+
+  const handleDeleteUser = async (userId: number) => {
+    const ok = window.confirm("Are you sure you want to delete this user? This action cannot be undone.")
+    if (!ok) return
+    setUpdating(userId)
+    try {
+      await apiAdminDeleteUser(userId)
       loadUsers()
     } catch (e) {
       console.error(e)
@@ -227,7 +244,9 @@ export default function AdminUsersPage() {
                     {/* Actions menu */}
                     <div className="relative">
                       <button
-                        onClick={() => setActionMenu(actionMenu === u.id ? null : u.id)}
+                        onClick={() => {
+                          setActionMenu(actionMenu === u.id ? null : u.id)
+                        }}
                         className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
                         disabled={updating === u.id}
                       >
@@ -239,22 +258,14 @@ export default function AdminUsersPage() {
                       </button>
 
                       {actionMenu === u.id && (
-                        <div className="absolute right-0 top-full mt-1 w-52 bg-slate-800/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-2xl shadow-black/40 z-10 overflow-hidden">
-                          {u.role === "developer" ? (
+                        <div className="absolute right-0 bottom-full mb-2 w-52 bg-slate-800/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-2xl shadow-black/40 z-50 overflow-hidden">
+                          {u.role === "developer" && (
                             <button
                               onClick={() => handleUpdateUser(u.id, { role: "admin" })}
                               className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-slate-300 hover:bg-white/[0.04] transition-colors"
                             >
                               <Shield size={14} className="text-red-400" />
                               Make Admin
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleUpdateUser(u.id, { role: "developer" })}
-                              className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-slate-300 hover:bg-white/[0.04] transition-colors"
-                            >
-                              <ShieldOff size={14} className="text-blue-400" />
-                              Make Developer
                             </button>
                           )}
 
@@ -269,9 +280,7 @@ export default function AdminUsersPage() {
                           )}
 
                           <button
-                            onClick={() =>
-                              handleUpdateUser(u.id, { is_active: !u.is_active })
-                            }
+                            onClick={() => handleUpdateUser(u.id, { is_active: !u.is_active })}
                             className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-slate-300 hover:bg-white/[0.04] transition-colors"
                           >
                             {u.is_active ? (
@@ -285,6 +294,14 @@ export default function AdminUsersPage() {
                                 Activate
                               </>
                             )}
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteUser(u.id)}
+                            className="flex items-center gap-2.5 w-full px-4 py-3 text-[13px] text-slate-300 hover:bg-white/[0.04] transition-colors"
+                          >
+                            <Trash size={14} className="text-rose-400" />
+                            Delete
                           </button>
                         </div>
                       )}

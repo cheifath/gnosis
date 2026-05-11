@@ -127,14 +127,41 @@ def admin_list_users(request):
     return JsonResponse({"results": data})
 
 
+@csrf_exempt
 @admin_required
-@require_GET
 def admin_get_user(request, user_id):
-    """Get detailed user info."""
+    """Get detailed user info or delete user."""
     try:
         u = User.objects.get(id=user_id)
     except User.DoesNotExist:
         return JsonResponse({"error": "User not found"}, status=404)
+
+    if request.method == "DELETE":
+        # Prevent an admin from deleting themselves.
+        if u.id == request.user.id:
+            return JsonResponse({"error": "Cannot delete your own account"}, status=400)
+
+        # Prevent deleting the last remaining admin account.
+        if u.role == "admin" and User.objects.filter(role="admin").count() <= 1:
+            return JsonResponse({"error": "Cannot delete the last admin"}, status=400)
+
+        target_id = u.id
+        target_username = u.username
+        u.delete()
+
+        AuditLog.objects.create(
+            action_type="user_deleted",
+            actor=request.user,
+            details={
+                "target_user_id": target_id,
+                "target_username": target_username,
+            },
+        )
+
+        return JsonResponse({"status": "success"})
+
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
     profile = getattr(u, "profile", None)
 
