@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, useState, useMemo } from "react"
+import { Fragment, useEffect, useState } from "react"
 import AdminLayout from "@/components/layout/admin-layout"
 import { apiAdminListLogs, AdminLog } from "@/lib/api/admin"
 import {

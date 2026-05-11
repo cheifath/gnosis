@@ -16,6 +16,9 @@ from integrations.github.comment_formatter import format_pr_summary
 from .models import WebhookEvent, AuditLog, PullRequest, PullRequestFile, Issue, Review, Confidence, Fix, Repository, GnosisSettings, Installation
 
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
+import time
+from django.db.utils import OperationalError
+from django.db import close_old_connections
 
 from django.http import HttpResponse
 
@@ -54,6 +57,28 @@ def admin_required(view_func):
             return JsonResponse({"error": "Admin access required"}, status=403)
         return view_func(request, *args, **kwargs)
     return wrapper
+    return wrapper
+
+
+def _safe_update_or_create(model, max_retries=5, initial_delay=0.05, backoff=2, **kwargs):
+    """Call model.objects.update_or_create with retries on SQLite database locked errors.
+
+    kwargs: same as update_or_create (lookup fields + defaults=dict(...))
+    """
+    delay = initial_delay
+    attempt = 0
+    while True:
+        try:
+            close_old_connections()
+            return model.objects.update_or_create(**kwargs)
+        except OperationalError as e:
+            msg = str(e).lower()
+            if "locked" in msg and attempt < max_retries:
+                attempt += 1
+                time.sleep(delay)
+                delay *= backoff
+                continue
+            raise
 
 @csrf_exempt
 def github_webhook(request):
@@ -120,7 +145,8 @@ def _handle_installation_event(action, payload):
     account = inst_data.get("account", {})
 
     if action == "created":
-        installation, _ = Installation.objects.update_or_create(
+        installation, _ = _safe_update_or_create(
+            Installation,
             github_installation_id=inst_id,
             defaults={
                 "account_login": account.get("login", ""),
@@ -137,7 +163,8 @@ def _handle_installation_event(action, payload):
             full_name = r.get("full_name", "")
             parts = full_name.split("/", 1)
             if len(parts) == 2:
-                Repository.objects.update_or_create(
+                _safe_update_or_create(
+                    Repository,
                     owner_name=parts[0],
                     repo_name=parts[1],
                     defaults={
@@ -190,7 +217,8 @@ def _handle_installation_repos_event(action, payload):
             full_name = r.get("full_name", "")
             parts = full_name.split("/", 1)
             if len(parts) == 2:
-                Repository.objects.update_or_create(
+                _safe_update_or_create(
+                    Repository,
                     owner_name=parts[0],
                     repo_name=parts[1],
                     defaults={
@@ -730,14 +758,38 @@ def activity(request):
 # ─── GitHub App Installation ────────────────────────────────────
 
 @jwt_required
+@jwt_required
 @require_GET
 def github_app_install_url(request):
-    """Return the URL to install the GNOSIS GitHub App."""
+    """Return the URL to install the GNOSIS GitHub App.
+    
+    Checks if the user already has a GitHub account connected.
+    If so, returns information about the connection instead of allowing new install.
+    """
+    from .models import UserProfile
+    
     app_slug = getattr(settings, "GITHUB_APP_SLUG", "")
     if not app_slug:
         return JsonResponse({"error": "GitHub App not configured"}, status=500)
+    
+    # Check if user already has GitHub connected
+    profile = getattr(request.user, 'profile', None) or UserProfile.objects.filter(user=request.user).first()
+    
+    if profile and profile.github_token:
+        # User already has a GitHub account connected
+        return JsonResponse({
+            "url": None,
+            "github_connected": True,
+            "github_login": profile.github_login,
+            "avatar_url": profile.avatar_url,
+            "message": f"Your GitHub account (@{profile.github_login}) is already connected. To connect a different account, disconnect this one first."
+        })
+    
     url = f"https://github.com/apps/{app_slug}/installations/new"
-    return JsonResponse({"url": url})
+    return JsonResponse({
+        "url": url,
+        "github_connected": False
+    })
 
 
 @jwt_required
@@ -874,7 +926,8 @@ def sync_installations(request):
         if request.user.role != "admin" and account_login != profile.github_login:
             continue
 
-        installation, created = Installation.objects.update_or_create(
+        installation, created = _safe_update_or_create(
+            Installation,
             github_installation_id=inst_id,
             defaults={
                 "account_login": account_login,
@@ -921,7 +974,8 @@ def sync_installations(request):
                 full_name = r.get("full_name", "")
                 parts = full_name.split("/", 1)
                 if len(parts) == 2:
-                    Repository.objects.update_or_create(
+                    _safe_update_or_create(
+                        Repository,
                         owner_name=parts[0],
                         repo_name=parts[1],
                         defaults={

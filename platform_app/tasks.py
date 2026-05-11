@@ -1,4 +1,7 @@
 from celery import shared_task
+import time
+from django.db.utils import OperationalError
+from django.db import close_old_connections
 from django.conf import settings
 from integrations.github.auth import GitHubAppAuth
 from integrations.github.pr_engine_runner import PullRequestEngineRunner
@@ -113,7 +116,25 @@ def process_pr_task(payload):
             if installation_obj and installation_obj.installed_by and not connected_user:
                 connected_user = installation_obj.installed_by
 
-        repository_obj, _ = Repository.objects.update_or_create(
+        # Safe upsert with retry for transient SQLite lock errors
+        def _safe_update_or_create(model, max_retries=5, initial_delay=0.05, backoff=2, **kwargs):
+            delay = initial_delay
+            attempt = 0
+            while True:
+                try:
+                    close_old_connections()
+                    return model.objects.update_or_create(**kwargs)
+                except OperationalError as e:
+                    msg = str(e).lower()
+                    if "locked" in msg and attempt < max_retries:
+                        attempt += 1
+                        time.sleep(delay)
+                        delay *= backoff
+                        continue
+                    raise
+
+        repository_obj, _ = _safe_update_or_create(
+            Repository,
             owner_name=owner,
             repo_name=repo,
             defaults={
@@ -132,7 +153,8 @@ def process_pr_task(payload):
         # Persist Pull Request
         # =========================
 
-        pull_request_obj, _ = PullRequest.objects.update_or_create(
+        pull_request_obj, _ = _safe_update_or_create(
+            PullRequest,
             repository=repository_obj,
             github_pr_number=pr_number,
             defaults={

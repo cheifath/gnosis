@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Trash2,
   Settings,
+  AlertTriangle,
 } from "lucide-react"
 
 type Installation = {
@@ -36,6 +37,9 @@ export default function InstallationsPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [installUrl, setInstallUrl] = useState("")
+  const [githubConnected, setGithubConnected] = useState(false)
+  const [githubLogin, setGithubLogin] = useState("")
+  const [avatarUrl, setAvatarUrl] = useState("")
   const [uninstalling, setUninstalling] = useState<number | null>(null)
   const [showUninstallConfirm, setShowUninstallConfirm] = useState<number | null>(null)
 
@@ -56,9 +60,14 @@ export default function InstallationsPage() {
   }
 
   useEffect(() => {
-    // On page load: sync from GitHub first, then fetch
+    // On page load: fetch install URL and check GitHub connection status
     Promise.all([
-      api.get("/installations/install-url/").then(res => setInstallUrl(res.data.url)).catch(() => {}),
+      api.get("/installations/install-url/").then(res => {
+        setInstallUrl(res.data.url || "")
+        setGithubConnected(res.data.github_connected || false)
+        setGithubLogin(res.data.github_login || "")
+        setAvatarUrl(res.data.avatar_url || "")
+      }).catch(() => {}),
     ]).then(() => {
       // Auto-sync from GitHub, then load
       api.post("/installations/sync/")
@@ -134,7 +143,7 @@ export default function InstallationsPage() {
             <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
             {syncing ? "Syncing..." : "Sync from GitHub"}
           </button>
-          {installUrl && installations.length === 0 && (
+          {installUrl && installations.length === 0 && !githubConnected && (
             <button
               onClick={handleInstall}
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 transition-all duration-300 group"
@@ -149,55 +158,92 @@ export default function InstallationsPage() {
 
       {/* No installations state */}
       {installations.length === 0 ? (
-        <div className="glass-card rounded-2xl p-12 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 flex items-center justify-center mx-auto mb-6">
-            <Download size={32} className="text-purple-400" />
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">No installations yet</h2>
-          <p className="text-sm text-slate-400 mb-2 max-w-md mx-auto">
-            Install the GNOSIS GitHub App on your personal account or organization to start getting AI-powered code reviews on every pull request.
-          </p>
-          <p className="text-xs text-slate-500 mb-8 max-w-md mx-auto">
-            You can choose to install on all repositories or select specific ones. GNOSIS works with both personal repos and organization repos.
-          </p>
-
-          {/* How it works */}
-          <div className="max-w-lg mx-auto mb-8">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-              {[
-                { step: "1", title: "Install", desc: "Click install to add GNOSIS to your GitHub account", icon: Download },
-                { step: "2", title: "Select Repos", desc: "Choose which repositories to monitor", icon: FolderGit2 },
-                { step: "3", title: "Auto Review", desc: "Every PR gets AI-powered code review", icon: CheckCircle2 },
-              ].map((s) => (
-                <div key={s.step} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 w-5 h-5 rounded-md flex items-center justify-center">{s.step}</span>
-                    <s.icon size={14} className="text-slate-400" />
-                  </div>
-                  <h3 className="text-sm font-medium text-white mb-1">{s.title}</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">{s.desc}</p>
-                </div>
-              ))}
+        githubConnected ? (
+          // GitHub is already connected
+          <div className="glass-card rounded-2xl p-12 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle size={32} className="text-amber-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-white mb-2">GitHub Already Connected</h2>
+            <div className="flex items-center justify-center gap-3 mb-6">
+              {avatarUrl && (
+                <Image
+                  src={avatarUrl}
+                  alt={githubLogin}
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-full"
+                />
+              )}
+              <p className="text-sm text-slate-400">
+                Connected as <span className="font-semibold text-white">@{githubLogin}</span>
+              </p>
+            </div>
+            <p className="text-sm text-slate-400 mb-8 max-w-md mx-auto">
+              Your GitHub account is already linked to your GNOSIS profile. To install with a different GitHub account, disconnect your current account first.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Link
+                href="/settings"
+                className="inline-flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-slate-300 hover:text-white px-6 py-2.5 rounded-xl font-medium transition-all duration-300"
+              >
+                <Settings size={16} />
+                Manage GitHub Connection
+              </Link>
             </div>
           </div>
+        ) : (
+          // GitHub is NOT connected - show normal installation flow
+          <div className="glass-card rounded-2xl p-12 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 flex items-center justify-center mx-auto mb-6">
+              <Download size={32} className="text-purple-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-white mb-2">No installations yet</h2>
+            <p className="text-sm text-slate-400 mb-2 max-w-md mx-auto">
+              Install the GNOSIS GitHub App on your personal account or organization to start getting AI-powered code reviews on every pull request.
+            </p>
+            <p className="text-xs text-slate-500 mb-8 max-w-md mx-auto">
+              You can choose to install on all repositories or select specific ones. GNOSIS works with both personal repos and organization repos.
+            </p>
 
-          <div className="flex items-center justify-center gap-4">
-            {installUrl && (
-              <button
-                onClick={handleInstall}
-                className="inline-flex items-center gap-2.5 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white px-8 py-3.5 rounded-xl font-medium shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 transition-all duration-300 group"
-              >
-                <Shield size={18} />
-                Install GNOSIS GitHub App
-                <ExternalLink size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
-              </button>
-            )}
+            {/* How it works */}
+            <div className="max-w-lg mx-auto mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                {[
+                  { step: "1", title: "Install", desc: "Click install to add GNOSIS to your GitHub account", icon: Download },
+                  { step: "2", title: "Select Repos", desc: "Choose which repositories to monitor", icon: FolderGit2 },
+                  { step: "3", title: "Auto Review", desc: "Every PR gets AI-powered code review", icon: CheckCircle2 },
+                ].map((s) => (
+                  <div key={s.step} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 w-5 h-5 rounded-md flex items-center justify-center">{s.step}</span>
+                      <s.icon size={14} className="text-slate-400" />
+                    </div>
+                    <h3 className="text-sm font-medium text-white mb-1">{s.title}</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-4">
+              {installUrl && (
+                <button
+                  onClick={handleInstall}
+                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white px-8 py-3.5 rounded-xl font-medium shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 transition-all duration-300 group"
+                >
+                  <Shield size={18} />
+                  Install GNOSIS GitHub App
+                  <ExternalLink size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                </button>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-600 mt-6">
+              Already installed? Click &quot;Sync from GitHub&quot; above to detect existing installations.
+            </p>
           </div>
-
-          <p className="text-xs text-slate-600 mt-6">
-            Already installed? Click &quot;Sync from GitHub&quot; above to detect existing installations.
-          </p>
-        </div>
+        )
       ) : (
         /* Installation card — single installation view */
         (() => {
